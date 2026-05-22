@@ -6,7 +6,7 @@ let timerIntervals = {};
 let answerKeys = {};
 let dateRange = {
     start: '2024-11-14',
-    end: '2025-12-25'
+    end: '2026-12-25'
 };
 let submittedData = [];
 let selectedEmployee = null;
