@@ -1,35 +1,40 @@
 // ============================================================
-// GAGE R&R SYSTEM — script.js (FIXED)
+// GAGE R&R SYSTEM — script.js
 // ============================================================
 
+// ── Google Sheets Apps Script URL ──────────────────────────
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTt1J3BGovZ438jq7saRMMAV_ZzyMH0I4POnbFn822SI7IroZ3SP-m7zKVLFPO3-7AOQ/exec';
 
+// ── Kredensial Verifikasi ───────────────────────────────────
 const VERIFY_CREDENTIALS = {
-    input:    { username: '1', password: '1' },
-    protected:{ username: 'Fabian', password: 'Fabian@2025' }
+    input:    { username: '1',      password: '1'          },  // gate halaman Input Data
+    protected:{ username: 'Fabian', password: 'Fabian@2025' }  // Auto List, Settings, Hapus
 };
 
-// State Global
-let checkingData = [];
-let timerIntervals = {};
-let answerKeys = {};
-let dateRange = { start: '', end: '' };
-let submittedData = [];
-let selectedEmployee = null;
-let currentChecking = 1;
-let selectedArea = null;
-let tempAnswerKey = {};
-let currentMode = 'realtime';
-let assessorList = [];
+// ── State Global ────────────────────────────────────────────
+let checkingData      = [];
+let timerIntervals    = {};
+let answerKeys        = {};        // { Cutting: { 1:'Pass-Pass', ... }, ... }
+let dateRange         = { start: '', end: '' };
+let submittedData     = [];
+let selectedEmployee  = null;
+let currentChecking   = 1;
+let selectedArea      = null;
+let tempAnswerKey     = {};
+let currentMode       = 'realtime'; // 'realtime' | 'postprocess'
+let assessorList      = [];         // dari Google Sheets kolom A
 
-let inputVerified = false;
-let autoListVerified = false;
-let settingsVerified = false;
+// Akses gate (session — reset kalau refresh)
+let inputVerified     = false;
+let autoListVerified  = false;
+let settingsVerified  = false;
 
-let verifyCallback = null;
+// Callback setelah verifikasi berhasil
+let verifyCallback    = null;
 
 const SUB_DEPT_OPTIONS = ['Cutting','DNS','Preparation','CSC','Sewing','Lasting','Assy','MA'];
 
+// ── Mapping area → baris Google Sheet ──────────────────────
 const AREA_ROW_MAP = {
     Cutting:     { start:2,  end:6  },
     DNS:         { start:7,  end:11 },
@@ -52,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeCheckingData();
     navigateTo('input');
 
+    // Tutup autocomplete kalau klik di luar
     document.addEventListener('click', function (e) {
         if (!e.target.closest('#assessorInput') && !e.target.closest('#assessorDropdown')) {
             document.getElementById('assessorDropdown').classList.add('hidden');
@@ -60,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ============================================================
-// LOCAL STORAGE & GOOGLE SHEETS (tetap sama)
+// LOCAL STORAGE
 // ============================================================
 function saveToStorage() {
     localStorage.setItem('gageRnR_submittedData', JSON.stringify(submittedData));
@@ -71,7 +77,11 @@ function loadFromStorage() {
     if (saved) submittedData = JSON.parse(saved);
 }
 
-// ... (semua fungsi sheetGet, sheetPost, fetchAssessorsFromSheet, dll tetap sama seperti sebelumnya)
+// ============================================================
+// GOOGLE SHEETS — FETCH & POST
+// ============================================================
+
+// Helper GET
 async function sheetGet(action) {
     try {
         const res = await fetch(`${APPS_SCRIPT_URL}?action=${action}`);
@@ -82,6 +92,7 @@ async function sheetGet(action) {
     }
 }
 
+// Helper POST
 async function sheetPost(body) {
     try {
         const res = await fetch(APPS_SCRIPT_URL, {
@@ -95,16 +106,21 @@ async function sheetPost(body) {
     }
 }
 
+// Ambil daftar penilai dari kolom A
 async function fetchAssessorsFromSheet() {
     const res = await sheetGet('getAssessors');
-    if (res.status === 'success') assessorList = res.data || [];
+    if (res.status === 'success') {
+        assessorList = res.data || [];
+    }
 }
 
+// Simpan penilai baru ke kolom A (hanya jika belum ada)
 async function saveAssessorToSheet(name) {
     await sheetPost({ action: 'saveAssessor', name });
-    await fetchAssessorsFromSheet();
+    await fetchAssessorsFromSheet(); // refresh list
 }
 
+// Ambil answer keys dari kolom D
 async function fetchAnswerKeysFromSheet() {
     const res = await sheetGet('getAnswerKeys');
     if (res.status === 'success') {
@@ -114,33 +130,45 @@ async function fetchAnswerKeysFromSheet() {
     }
 }
 
+// Simpan answer key area tertentu ke kolom D
 async function saveAnswerKeyToSheet(area, answers) {
     return await sheetPost({ action: 'saveAnswerKey', area, answers });
 }
 
+// Hapus answer key area tertentu (kosongkan baris D yang sesuai)
 async function deleteAnswerKeyFromSheet(area) {
     return await sheetPost({ action: 'deleteAnswerKey', area });
 }
 
+// Ambil date range dari E2/F2
 async function fetchDateRangeFromSheet() {
     const res = await sheetGet('getDateRange');
     if (res.status === 'success' && res.data) {
         dateRange = res.data;
-        document.getElementById('dateStart').value = dateRange.start || '';
-        document.getElementById('dateEnd').value = dateRange.end || '';
+        const elStart = document.getElementById('dateStart');
+        const elEnd   = document.getElementById('dateEnd');
+        if (elStart) elStart.value = dateRange.start || '';
+        if (elEnd)   elEnd.value   = dateRange.end   || '';
     }
 }
 
+// Simpan date range ke E2/F2
 async function saveDateRangeToSheet(start, end) {
     return await sheetPost({ action: 'saveDateRange', start, end });
 }
 
 // ============================================================
-// VERIFIKASI MODAL
+// VERIFIKASI MODAL (Reusable)
 // ============================================================
+
+// Tampilkan modal verifikasi
+// title     : judul modal
+// subtitle  : deskripsi singkat
+// type      : 'input' | 'protected'
+// callback  : fungsi yang dijalankan setelah verifikasi berhasil
 function openVerifyModal(title, subtitle, type, callback) {
     verifyCallback = { type, callback };
-    document.getElementById('verifyModalTitle').textContent = title;
+    document.getElementById('verifyModalTitle').textContent    = title;
     document.getElementById('verifyModalSubtitle').textContent = subtitle;
     document.getElementById('verifyUsername').value = '';
     document.getElementById('verifyPassword').value = '';
@@ -159,7 +187,7 @@ function submitVerify() {
 
     const username = document.getElementById('verifyUsername').value.trim();
     const password = document.getElementById('verifyPassword').value;
-    const cred = VERIFY_CREDENTIALS[verifyCallback.type];
+    const cred     = VERIFY_CREDENTIALS[verifyCallback.type];
 
     if (username === cred.username && password === cred.password) {
         closeVerifyModal();
@@ -171,56 +199,98 @@ function submitVerify() {
     }
 }
 
-// ============================================================
-// REQUEST ACCESS (Langsung Modal)
-// ============================================================
+// Enter key di modal verifikasi
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !document.getElementById('verifyModal').classList.contains('hidden')) {
+        submitVerify();
+    }
+});
+
+// ── Gate: Input Data ────────────────────────────────────────
 function requestInputAccess() {
-    openVerifyModal('Verifikasi Input Data', 'Masukkan kredensial untuk mengakses halaman Input Data.', 'input', () => {
-        inputVerified = true;
-        showInputContent();
-    });
-}
-
-function requestAutoListAccess() {
-    openVerifyModal('Verifikasi Auto List Sample', 'Masukkan kredensial admin untuk mengatur Answer Keys.', 'protected', () => {
-        autoListVerified = true;
-        showAutoListContent();
-    });
-}
-
-function requestSettingsAccess() {
-    openVerifyModal('Verifikasi Pengaturan', 'Masukkan kredensial admin untuk mengubah periode.', 'protected', () => {
-        settingsVerified = true;
-        showSettingsContent();
-    });
+    openVerifyModal(
+        'Verifikasi Input Data',
+        'Masukkan kredensial untuk mengakses halaman Input Data.',
+        'input',
+        function () {
+            inputVerified = true;
+            showInputContent();
+        }
+    );
 }
 
 function showInputContent() {
+    document.getElementById('inputView').classList.remove('hidden');
     document.getElementById('inputGate').classList.add('hidden');
     document.getElementById('inputContent').classList.remove('hidden');
 }
 
+// ── Gate: Auto List Sample ──────────────────────────────────
+function requestAutoListAccess() {
+    openVerifyModal(
+        'Verifikasi Auto List Sample',
+        'Masukkan kredensial admin untuk mengatur Answer Keys.',
+        'protected',
+        function () {
+            autoListVerified = true;
+            showAutoListContent();
+        }
+    );
+}
+
 function showAutoListContent() {
+    document.getElementById('autoListView').classList.remove('hidden');
     document.getElementById('autoListGate').classList.add('hidden');
     document.getElementById('autoListContent').classList.remove('hidden');
     renderAreaSelector();
 }
 
+// ── Gate: Settings ──────────────────────────────────────────
+function requestSettingsAccess() {
+    openVerifyModal(
+        'Verifikasi Pengaturan',
+        'Masukkan kredensial admin untuk mengubah periode.',
+        'protected',
+        function () {
+            settingsVerified = true;
+            showSettingsContent();
+        }
+    );
+}
+
 function showSettingsContent() {
+    document.getElementById('settingsView').classList.remove('hidden');
     document.getElementById('settingsGate').classList.add('hidden');
     document.getElementById('settingsContent').classList.remove('hidden');
     fetchDateRangeFromSheet();
 }
 
+// ── Gate: Hapus Data ────────────────────────────────────────
+function requestDeleteData() {
+    openVerifyModal(
+        'Verifikasi Hapus Data',
+        'Masukkan kredensial admin untuk menghapus data ini.',
+        'protected',
+        function () {
+            deleteEmployeeData();
+        }
+    );
+}
+
 // ============================================================
-// NAVIGASI (FIXED)
+// NAVIGASI
 // ============================================================
 function navigateTo(view) {
+    // 1. Sembunyikan semua view
     ['inputView','autoListView','dataNilaiView','settingsView'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
     });
 
+    // 2. Reset semua menu active
     document.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
+
+    // 3. Tutup sidebar
+    toggleSidebar(false);
 
     if (view === 'input') {
         document.getElementById('inputView').classList.remove('hidden');
@@ -228,9 +298,12 @@ function navigateTo(view) {
         document.getElementById('headerTitle').textContent = 'Input Data';
 
         if (!inputVerified) {
-            requestInputAccess();
+            // Tampilkan gate, sembunyikan konten
+            document.getElementById('inputGate').classList.remove('hidden');
+            document.getElementById('inputContent').classList.add('hidden');
         } else {
-            showInputContent();
+            document.getElementById('inputGate').classList.add('hidden');
+            document.getElementById('inputContent').classList.remove('hidden');
         }
 
     } else if (view === 'autolist') {
@@ -239,9 +312,12 @@ function navigateTo(view) {
         document.getElementById('headerTitle').textContent = 'Auto List Sample';
 
         if (!autoListVerified) {
-            requestAutoListAccess();
+            document.getElementById('autoListGate').classList.remove('hidden');
+            document.getElementById('autoListContent').classList.add('hidden');
         } else {
-            showAutoListContent();
+            document.getElementById('autoListGate').classList.add('hidden');
+            document.getElementById('autoListContent').classList.remove('hidden');
+            renderAreaSelector();
         }
 
     } else if (view === 'datanilai') {
@@ -259,24 +335,24 @@ function navigateTo(view) {
         document.getElementById('headerTitle').textContent = 'Pengaturan Periode';
 
         if (!settingsVerified) {
-            requestSettingsAccess();
+            document.getElementById('settingsGate').classList.remove('hidden');
+            document.getElementById('settingsContent').classList.add('hidden');
         } else {
-            showSettingsContent();
+            document.getElementById('settingsGate').classList.add('hidden');
+            document.getElementById('settingsContent').classList.remove('hidden');
+            fetchDateRangeFromSheet();
         }
     }
-
-    toggleSidebar(false);
 }
 
 // ============================================================
-// Sisanya (Autocomplete, Checking, Save, dll) tetap sama
+// SIDEBAR
 // ============================================================
-// (Silakan copy seluruh bagian dari script.js lama mulai dari toggleSidebar sampai akhir)
-
 function toggleSidebar(force) {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const isActive = sidebar.classList.contains('active');
+
     if (force === false || isActive) {
         sidebar.classList.remove('active');
         overlay.classList.remove('active');
@@ -285,8 +361,6 @@ function toggleSidebar(force) {
         overlay.classList.add('active');
     }
 }
-
-// ... Masukkan semua fungsi lain dari script.js lama Anda (filterAssessorSuggestions, handleNikChange, dll sampai akhir)
 
 // ============================================================
 // AUTOCOMPLETE PENILAI
