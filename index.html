@@ -7,54 +7,55 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>Gage R&R System</h1>
-                <p>Quality Control Application</p>
+
+    <!-- ===================== VERIFICATION MODAL ===================== -->
+    <div id="verifyModal" class="modal-overlay hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-verify-icon">🔐</div>
+            <h3 class="modal-title" id="verifyModalTitle">Verifikasi Akses</h3>
+            <p class="modal-subtitle" id="verifyModalSubtitle">Masukkan username dan password untuk melanjutkan.</p>
+            <div class="form-group">
+                <input type="text" id="verifyUsername" placeholder="Username" class="input-field" autocomplete="off">
             </div>
-            
-            <div class="login-buttons">
-                <div class="admin-login">
-                    <input type="text" id="username" placeholder="Username" class="input-field">
-                    <input type="password" id="password" placeholder="Password" class="input-field">
-                    <button onclick="handleLogin()" class="btn-primary btn-large">
-                        Login
-                    </button>
-                </div>
+            <div class="form-group">
+                <input type="password" id="verifyPassword" placeholder="Password" class="input-field">
+            </div>
+            <p id="verifyError" class="verify-error hidden">Username atau password salah!</p>
+            <div class="modal-actions">
+                <button onclick="closeVerifyModal()" class="btn-secondary">Batal</button>
+                <button onclick="submitVerify()" class="btn-primary">Masuk</button>
             </div>
         </div>
     </div>
 
-    <!-- Main App -->
-    <div id="mainApp" class="main-app hidden">
+    <!-- ===================== MAIN APP ===================== -->
+    <div id="mainApp" class="main-app">
+
         <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">GR&R</div>
+                <p class="sidebar-tagline">Quality Control System</p>
+            </div>
             <div class="sidebar-content">
-                <h2 class="sidebar-title">Menu</h2>
-                
-                <div class="menu-list">
-                    <button onclick="navigateTo('input')" class="menu-item">
-                        📝 Input Data
+                <nav class="menu-list">
+                    <button onclick="navigateTo('input')" class="menu-item" id="menuInput">
+                        <span class="menu-icon">📝</span>
+                        <span>Input Data</span>
                     </button>
-                    
-                    <button id="menuAutoList" onclick="navigateTo('autolist')" class="menu-item hidden">
-                        🔑 Auto List Sample
+                    <button onclick="navigateTo('autolist')" class="menu-item" id="menuAutoList">
+                        <span class="menu-icon">🔑</span>
+                        <span>Auto List Sample</span>
                     </button>
-                    
-                    <button onclick="navigateTo('datanilai')" class="menu-item">
-                        📊 Data Nilai
+                    <button onclick="navigateTo('datanilai')" class="menu-item" id="menuDataNilai">
+                        <span class="menu-icon">📊</span>
+                        <span>Data Nilai</span>
                     </button>
-                    
-                    <button id="menuSettings" onclick="navigateTo('settings')" class="menu-item hidden">
-                        ⚙️ Pengaturan Tanggal
+                    <button onclick="navigateTo('settings')" class="menu-item" id="menuSettings">
+                        <span class="menu-icon">⚙️</span>
+                        <span>Pengaturan Periode</span>
                     </button>
-                    
-                    <button onclick="handleLogout()" class="menu-item logout-btn">
-                        🚪 Logout
-                    </button>
-                </div>
+                </nav>
             </div>
         </div>
 
@@ -63,6 +64,7 @@
 
         <!-- Main Content -->
         <div class="main-content">
+
             <!-- Header -->
             <div class="header">
                 <button onclick="toggleSidebar()" class="menu-toggle">☰</button>
@@ -72,58 +74,162 @@
 
             <!-- Content Area -->
             <div class="content-area">
-                
-                <!-- Auto List Sample View (Admin Only) -->
-                <div id="autoListView" class="view-container hidden">
-                    <div class="card">
-                        <h2 class="card-title">Auto List Sample - Answer Keys</h2>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Pilih Sub-Department Area</label>
-                            <div class="area-selector" id="areaSelector"></div>
+
+                <!-- ==================== INPUT VIEW ==================== -->
+                <div id="inputView" class="view-container hidden">
+                    <div id="inputGate" class="verify-gate hidden">
+                        <div class="gate-card">
+                            <div class="gate-icon">🔐</div>
+                            <h2>Akses Diperlukan</h2>
+                            <p>Halaman Input Data memerlukan verifikasi.</p>
+                            <button onclick="requestInputAccess()" class="btn-primary btn-large">Masuk</button>
                         </div>
-                        
-                        <div id="answerKeyForm" class="answer-key-form hidden">
-                            <h3 class="form-subtitle">Atur Answer Key</h3>
-                            <div id="sampleKeyContainer"></div>
-                            
-                            <div class="button-group">
-                                <button onclick="saveAnswerKey()" class="btn-primary">
-                                    Simpan Answer Key
-                                </button>
-                                <button onclick="deleteAnswerKey()" class="btn-danger">
-                                    Hapus Answer Key
-                                </button>
+                    </div>
+
+                    <div id="inputContent" class="hidden">
+                        <!-- Data Peserta -->
+                        <div class="card">
+                            <h2 class="card-title">Data Peserta</h2>
+                            <div class="form-group">
+                                <label class="form-label">Penilai</label>
+                                <input type="text" id="assessorInput" placeholder="Ketik nama penilai..." class="input-field" oninput="filterAssessorSuggestions()" autocomplete="off">
+                                <div id="assessorDropdown" class="autocomplete-dropdown hidden"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">NIK</label>
+                                <input type="text" id="nikInput" onchange="handleNikChange()" placeholder="Masukkan NIK" class="input-field">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Nama</label>
+                                <input type="text" id="nameInput" readonly placeholder="Nama akan muncul otomatis" class="input-field input-readonly">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Sub-Department Area</label>
+                                <select id="subDeptInput" onchange="handleSubDeptChange()" class="input-field">
+                                    <option value="">Pilih Sub-Department</option>
+                                    <option value="Cutting">Cutting</option>
+                                    <option value="DNS">DNS</option>
+                                    <option value="Preparation">Preparation</option>
+                                    <option value="CSC">CSC</option>
+                                    <option value="Sewing">Sewing</option>
+                                    <option value="Lasting">Lasting</option>
+                                    <option value="Assy">Assy</option>
+                                    <option value="MA">MA</option>
+                                </select>
+                                <div id="subDeptKeyNotif" class="subdept-notif hidden">
+                                    <span class="notif-dot"></span>
+                                    <span id="subDeptKeyText">Answer key sudah disetting</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Line</label>
+                                <select id="lineInput" class="input-field">
+                                    <option value="">Pilih Line</option>
+                                    <option value="NCVS 101">NCVS 101</option>
+                                    <option value="NCVS 102">NCVS 102</option>
+                                    <option value="NCVS 103">NCVS 103</option>
+                                    <option value="NCVS 104">NCVS 104</option>
+                                    <option value="NCVS 105">NCVS 105</option>
+                                    <option value="NCVS 106">NCVS 106</option>
+                                    <option value="NCVS 107">NCVS 107</option>
+                                    <option value="NCVS 108">NCVS 108</option>
+                                    <option value="NCVS 109">NCVS 109</option>
+                                    <option value="NCVS 110">NCVS 110</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Data Checking -->
+                        <div class="card">
+                            <div class="checking-header-row">
+                                <h2 class="card-title">Data Checking</h2>
+                                <div class="autofill-control">
+                                    <button id="autoFillBtn" onclick="applyAutoFill()" class="btn-autofill" disabled>
+                                        🔑 Auto List Sample
+                                    </button>
+                                    <button id="modeGearBtn" onclick="toggleModePanel()" class="btn-gear" title="Pengaturan Mode">⚙️</button>
+                                </div>
+                            </div>
+
+                            <!-- Mode Panel -->
+                            <div id="modePanel" class="mode-panel hidden">
+                                <p class="mode-panel-title">Pilih Mode Input</p>
+                                <div class="mode-options">
+                                    <button onclick="setMode('realtime')" id="modeRealtime" class="mode-btn active">⚡ Real-time</button>
+                                    <button onclick="setMode('postprocess')" id="modePostProcess" class="mode-btn">📋 Post-Process</button>
+                                </div>
+                                <p id="modeDescription" class="mode-description">
+                                    ⚡ Digunakan untuk kondisi ketika data diinput langsung selama proses audit berlangsung.
+                                </p>
+                            </div>
+
+                            <div id="randomTimerPanel" class="random-timer-panel hidden">
+                                <label class="form-label">🎲 Rentang Random Timer (detik)</label>
+                                <div class="random-timer-inputs">
+                                    <input type="number" id="randomTimerMin" class="input-field timer-range-input" placeholder="Min" min="1" value="30">
+                                    <span class="timer-range-sep">—</span>
+                                    <input type="number" id="randomTimerMax" class="input-field timer-range-input" placeholder="Max" min="1" value="60">
+                                    <span class="timer-range-unit">detik</span>
+                                </div>
+                            </div>
+
+                            <div class="checking-slider" id="checkingSlider">
+                                <div class="checking-page" id="checking-1"></div>
+                                <div class="checking-page" id="checking-2"></div>
+                                <div class="checking-page" id="checking-3"></div>
+                            </div>
+
+                            <div class="checking-navigation">
+                                <button onclick="prevChecking()" id="prevBtn" class="nav-btn" disabled>← Sebelumnya</button>
+                                <span id="checkingIndicator" class="checking-indicator">Pemeriksaan 1 dari 3</span>
+                                <button onclick="nextChecking()" id="nextBtn" class="nav-btn">Selanjutnya →</button>
+                            </div>
+                        </div>
+
+                        <button onclick="saveData()" class="btn-save">SIMPAN</button>
+                    </div>
+                </div>
+
+                <!-- ==================== AUTO LIST VIEW ==================== -->
+                <div id="autoListView" class="view-container hidden">
+                    <div id="autoListGate" class="verify-gate hidden">
+                        <div class="gate-card">
+                            <div class="gate-icon">🔐</div>
+                            <h2>Akses Diperlukan</h2>
+                            <p>Halaman Auto List Sample memerlukan verifikasi.</p>
+                            <button onclick="requestAutoListAccess()" class="btn-primary btn-large">Masuk</button>
+                        </div>
+                    </div>
+
+                    <div id="autoListContent" class="hidden">
+                        <div class="card">
+                            <h2 class="card-title">Auto List Sample — Answer Keys</h2>
+                            <div class="form-group">
+                                <label class="form-label">Pilih Sub-Department Area</label>
+                                <div class="area-selector" id="areaSelector"></div>
+                            </div>
+                            <div id="answerKeyForm" class="answer-key-form hidden">
+                                <h3 class="form-subtitle">Atur Answer Key</h3>
+                                <div id="sampleKeyContainer"></div>
+                                <div class="button-group">
+                                    <button onclick="saveAnswerKey()" class="btn-primary">💾 Simpan Answer Key</button>
+                                    <button onclick="deleteAnswerKey()" class="btn-danger">🗑️ Hapus Answer Key</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Data Nilai View -->
+                <!-- ==================== DATA NILAI VIEW ==================== -->
                 <div id="dataNilaiView" class="view-container hidden">
                     <div class="card">
                         <h2 class="card-title">Data Nilai Peserta</h2>
-                        
-                        <!-- Legend (Admin Only) -->
-                        <div id="colorLegend" class="color-legend hidden">
-                            <div class="legend-item">
-                                <span class="legend-color legend-green"></span>
-                                <span>Jawaban benar semua</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-yellow"></span>
-                                <span>Terdapat kesalahan jawaban</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-red"></span>
-                                <span>Data duplikat (diinput lebih dari 1x)</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-black"></span>
-                                <span>Answer Key Sample List belum disetting</span>
-                            </div>
+                        <div class="color-legend">
+                            <div class="legend-item"><span class="legend-color legend-green"></span><span>Jawaban benar semua</span></div>
+                            <div class="legend-item"><span class="legend-color legend-yellow"></span><span>Terdapat kesalahan jawaban</span></div>
+                            <div class="legend-item"><span class="legend-color legend-red"></span><span>Data duplikat</span></div>
+                            <div class="legend-item"><span class="legend-color legend-black"></span><span>Answer Key belum disetting</span></div>
                         </div>
-                        
                         <div id="filterContainer" class="form-group">
                             <label class="form-label">Filter Sub-Department Area</label>
                             <select id="filterSubDept" onchange="filterEmployeeList()" class="input-field">
@@ -138,169 +244,55 @@
                                 <option value="MA">MA</option>
                             </select>
                         </div>
-                        
                         <div id="employeeList" class="employee-list"></div>
-                        
                         <div id="employeeDetail" class="employee-detail hidden">
                             <button onclick="backToList()" class="btn-link">← Kembali ke daftar</button>
-                            
                             <div id="employeeInfo" class="employee-info"></div>
-                            
                             <div class="table-wrapper">
                                 <table id="gradeTable" class="grade-table"></table>
                             </div>
-                            
                             <p class="table-note">P = Pass, F = Fail</p>
                             <p class="table-note">Angka ganjil = Kiri, Angka genap = Kanan</p>
-                            
                             <div class="detail-actions">
-                                <button id="downloadBtn" onclick="downloadExcel()" class="btn-success hidden">
-                                    📥 Download Excel
-                                </button>
-                                <button id="deleteDataBtn" onclick="deleteEmployeeData()" class="btn-danger hidden">
-                                    🗑️ Hapus Data
-                                </button>
+                                <button id="downloadBtn" onclick="downloadExcel()" class="btn-success">📥 Download Excel</button>
+                                <button id="deleteDataBtn" onclick="requestDeleteData()" class="btn-danger">🗑️ Hapus Data</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Settings View -->
+                <!-- ==================== SETTINGS VIEW ==================== -->
                 <div id="settingsView" class="view-container hidden">
-                    <div class="card">
-                        <h3 class="card-title">Pengaturan Periode Gage R&R</h3>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Tanggal Mulai</label>
-                            <input type="date" id="dateStart" class="input-field">
+                    <div id="settingsGate" class="verify-gate hidden">
+                        <div class="gate-card">
+                            <div class="gate-icon">🔐</div>
+                            <h2>Akses Diperlukan</h2>
+                            <p>Halaman Pengaturan memerlukan verifikasi.</p>
+                            <button onclick="requestSettingsAccess()" class="btn-primary btn-large">Masuk</button>
                         </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Tanggal Selesai</label>
-                            <input type="date" id="dateEnd" class="input-field">
+                    </div>
+
+                    <div id="settingsContent" class="hidden">
+                        <div class="card">
+                            <h3 class="card-title">Pengaturan Periode Gage R&R</h3>
+                            <div class="form-group">
+                                <label class="form-label">Tanggal Mulai</label>
+                                <input type="date" id="dateStart" class="input-field">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tanggal Selesai</label>
+                                <input type="date" id="dateEnd" class="input-field">
+                            </div>
+                            <button onclick="saveDateSettings()" class="btn-primary btn-large">💾 Simpan Pengaturan</button>
                         </div>
-                        
-                        <button onclick="saveDateSettings()" class="btn-primary btn-large">
-                            Simpan Pengaturan
-                        </button>
                     </div>
                 </div>
 
-                <!-- Input Form -->
-                <div id="inputView" class="view-container">
-                    <!-- Profile Section -->
-                    <div class="card">
-                        <h2 class="card-title">Data Peserta</h2>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Penilai</label>
-                            <input list="assessorList" id="assessorInput" placeholder="Pilih atau ketik nama penilai" class="input-field">
-                            <datalist id="assessorList">
-                                <option value="Irma">
-                                <option value="Iksan">
-                                <option value="Ope">
-                            </datalist>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">NIK</label>
-                            <input type="text" id="nikInput" onchange="handleNikChange()" placeholder="Masukkan NIK" class="input-field">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Nama</label>
-                            <input type="text" id="nameInput" readonly placeholder="Nama akan muncul otomatis" class="input-field input-readonly">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Sub-Department Area</label>
-                            <select id="subDeptInput" class="input-field">
-                                <option value="">Pilih Sub-Department</option>
-                                <option value="Cutting">Cutting</option>
-                                <option value="DNS">DNS</option>
-                                <option value="Preparation">Preparation</option>
-                                <option value="CSC">CSC</option>
-                                <option value="Sewing">Sewing</option>
-                                <option value="Lasting">Lasting</option>
-                                <option value="Assy">Assy</option>
-                                <option value="MA">MA</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Line</label>
-                            <select id="lineInput" class="input-field">
-                                <option value="">Pilih Line</option>
-                                <option value="NCVS 101">NCVS 101</option>
-                                <option value="NCVS 102">NCVS 102</option>
-                                <option value="NCVS 103">NCVS 103</option>
-                                <option value="NCVS 104">NCVS 104</option>
-                                <option value="NCVS 105">NCVS 105</option>
-                                <option value="NCVS 106">NCVS 106</option>
-                                <option value="NCVS 107">NCVS 107</option>
-                                <option value="NCVS 108">NCVS 108</option>
-                                <option value="NCVS 109">NCVS 109</option>
-                                <option value="NCVS 110">NCVS 110</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Checking Data -->
-                    <div class="card">
-                        <div class="checking-header-row">
-                            <h2 class="card-title">Data Checking</h2>
-                            <button id="autoFillBtn" onclick="showAutoFillModal()" class="btn-autofill">
-                                🔑 Auto List Sample
-                            </button>
-                        </div>
-                        
-                        <div class="checking-slider" id="checkingSlider">
-                            <!-- Checking 1 -->
-                            <div class="checking-page" id="checking-1">
-                                <div id="checkingContainer1" class="checking-container"></div>
-                            </div>
-                            
-                            <!-- Checking 2 -->
-                            <div class="checking-page" id="checking-2">
-                                <div id="checkingContainer2" class="checking-container"></div>
-                            </div>
-                            
-                            <!-- Checking 3 -->
-                            <div class="checking-page" id="checking-3">
-                                <div id="checkingContainer3" class="checking-container"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="checking-navigation">
-                            <button onclick="prevChecking()" id="prevBtn" class="nav-btn" disabled>← Sebelumnya</button>
-                            <span id="checkingIndicator" class="checking-indicator">Pemeriksaan 1 dari 3</span>
-                            <button onclick="nextChecking()" id="nextBtn" class="nav-btn">Selanjutnya →</button>
-                        </div>
-                    </div>
-
-                    <!-- Save Button -->
-                    <button onclick="saveData()" class="btn-save">
-                        SIMPAN
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Auto Fill Modal -->
-    <div id="autoFillModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="modal-title">Pilih Area untuk Auto Fill</h3>
-            <div id="autoFillAreaSelector" class="area-selector-modal"></div>
-            <div class="modal-actions">
-                <button onclick="closeAutoFillModal()" class="btn-secondary">Batal</button>
-                <button onclick="applyAutoFill()" class="btn-primary">Terapkan</button>
             </div>
         </div>
     </div>
 
     <script src="datanamanik.js"></script>
-    <script src="datalogin.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
