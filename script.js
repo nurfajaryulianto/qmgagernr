@@ -8,7 +8,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTt1J3BGovZ438
 // ── Kredensial Verifikasi ───────────────────────────────────
 const VERIFY_CREDENTIALS = {
     input:    { username: '1',      password: '1'          },  // gate halaman Input Data
-    protected:{ username: 'Fabian', password: 'Fabian@2025' }  // Auto List, Settings, Hapus
+    protected:{ username: 'Q', password: 'Q' }  // Auto List, Settings, Hapus
 };
 
 // ── State Global ────────────────────────────────────────────
