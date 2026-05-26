@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <!-- ===================== VERIFICATION MODAL ===================== -->
+    <!-- ===================== VERIFICATION MODAL (Reusable) ===================== -->
     <div id="verifyModal" class="modal-overlay hidden">
         <div class="modal-content modal-small">
             <div class="modal-verify-icon">🔐</div>
@@ -76,33 +76,32 @@
             <div class="content-area">
 
                 <!-- ==================== INPUT VIEW ==================== -->
-                <div id="inputView" class="view-container hidden">
-                    <div id="inputGate" class="verify-gate hidden">
-                        <div class="gate-card">
-                            <div class="gate-icon">🔐</div>
-                            <h2>Akses Diperlukan</h2>
-                            <p>Halaman Input Data memerlukan verifikasi.</p>
-                            <button onclick="requestInputAccess()" class="btn-primary btn-large">Masuk</button>
-                        </div>
-                    </div>
+                <div id="inputView" class="view-container">
 
-                    <div id="inputContent" class="hidden">
+
+                    <!-- Konten Input Data (tampil setelah verifikasi) -->
+                    <div id="inputContent">
+
                         <!-- Data Peserta -->
                         <div class="card">
                             <h2 class="card-title">Data Peserta</h2>
+
                             <div class="form-group">
                                 <label class="form-label">Penilai</label>
                                 <input type="text" id="assessorInput" placeholder="Ketik nama penilai..." class="input-field" oninput="filterAssessorSuggestions()" autocomplete="off">
                                 <div id="assessorDropdown" class="autocomplete-dropdown hidden"></div>
                             </div>
+
                             <div class="form-group">
                                 <label class="form-label">NIK</label>
                                 <input type="text" id="nikInput" onchange="handleNikChange()" placeholder="Masukkan NIK" class="input-field">
                             </div>
+
                             <div class="form-group">
                                 <label class="form-label">Nama</label>
                                 <input type="text" id="nameInput" readonly placeholder="Nama akan muncul otomatis" class="input-field input-readonly">
                             </div>
+
                             <div class="form-group">
                                 <label class="form-label">Sub-Department Area</label>
                                 <select id="subDeptInput" onchange="handleSubDeptChange()" class="input-field">
@@ -121,6 +120,7 @@
                                     <span id="subDeptKeyText">Answer key sudah disetting</span>
                                 </div>
                             </div>
+
                             <div class="form-group">
                                 <label class="form-label">Line</label>
                                 <select id="lineInput" class="input-field">
@@ -143,11 +143,15 @@
                         <div class="card">
                             <div class="checking-header-row">
                                 <h2 class="card-title">Data Checking</h2>
+
+                                <!-- Auto List Sample Button + Mode Gear -->
                                 <div class="autofill-control">
                                     <button id="autoFillBtn" onclick="applyAutoFill()" class="btn-autofill" disabled>
                                         🔑 Auto List Sample
                                     </button>
-                                    <button id="modeGearBtn" onclick="toggleModePanel()" class="btn-gear" title="Pengaturan Mode">⚙️</button>
+                                    <button id="modeGearBtn" onclick="toggleModePanel()" class="btn-gear" title="Pengaturan Mode">
+                                        ⚙️
+                                    </button>
                                 </div>
                             </div>
 
@@ -155,14 +159,21 @@
                             <div id="modePanel" class="mode-panel hidden">
                                 <p class="mode-panel-title">Pilih Mode Input</p>
                                 <div class="mode-options">
-                                    <button onclick="setMode('realtime')" id="modeRealtime" class="mode-btn active">⚡ Real-time</button>
-                                    <button onclick="setMode('postprocess')" id="modePostProcess" class="mode-btn">📋 Post-Process</button>
+                                    <button onclick="setMode('realtime')" id="modeRealtime" class="mode-btn active">
+                                        <span class="mode-btn-icon">⚡</span>
+                                        <span class="mode-btn-label">Real-time</span>
+                                    </button>
+                                    <button onclick="setMode('postprocess')" id="modePostProcess" class="mode-btn">
+                                        <span class="mode-btn-icon">📋</span>
+                                        <span class="mode-btn-label">Post-Process</span>
+                                    </button>
                                 </div>
                                 <p id="modeDescription" class="mode-description">
                                     ⚡ Digunakan untuk kondisi ketika data diinput langsung selama proses audit berlangsung.
                                 </p>
                             </div>
 
+                            <!-- Random Timer (hanya muncul saat Post-Process) -->
                             <div id="randomTimerPanel" class="random-timer-panel hidden">
                                 <label class="form-label">🎲 Rentang Random Timer (detik)</label>
                                 <div class="random-timer-inputs">
@@ -173,6 +184,7 @@
                                 </div>
                             </div>
 
+                            <!-- Checking Slider -->
                             <div class="checking-slider" id="checkingSlider">
                                 <div class="checking-page" id="checking-1"></div>
                                 <div class="checking-page" id="checking-2"></div>
@@ -186,28 +198,23 @@
                             </div>
                         </div>
 
+                        <!-- Save Button -->
                         <button onclick="saveData()" class="btn-save">SIMPAN</button>
-                    </div>
-                </div>
+
+                    </div><!-- end inputContent -->
+                </div><!-- end inputView -->
 
                 <!-- ==================== AUTO LIST VIEW ==================== -->
-                <div id="autoListView" class="view-container hidden">
-                    <div id="autoListGate" class="verify-gate hidden">
-                        <div class="gate-card">
-                            <div class="gate-icon">🔐</div>
-                            <h2>Akses Diperlukan</h2>
-                            <p>Halaman Auto List Sample memerlukan verifikasi.</p>
-                            <button onclick="requestAutoListAccess()" class="btn-primary btn-large">Masuk</button>
-                        </div>
-                    </div>
-
-                    <div id="autoListContent" class="hidden">
+                <div id="autoListView" class="view-container">
+                    <div id="autoListContent">
                         <div class="card">
                             <h2 class="card-title">Auto List Sample — Answer Keys</h2>
+
                             <div class="form-group">
                                 <label class="form-label">Pilih Sub-Department Area</label>
                                 <div class="area-selector" id="areaSelector"></div>
                             </div>
+
                             <div id="answerKeyForm" class="answer-key-form hidden">
                                 <h3 class="form-subtitle">Atur Answer Key</h3>
                                 <div id="sampleKeyContainer"></div>
@@ -221,15 +228,18 @@
                 </div>
 
                 <!-- ==================== DATA NILAI VIEW ==================== -->
-                <div id="dataNilaiView" class="view-container hidden">
+                <div id="dataNilaiView" class="view-container">
                     <div class="card">
                         <h2 class="card-title">Data Nilai Peserta</h2>
+
+                        <!-- Legend -->
                         <div class="color-legend">
                             <div class="legend-item"><span class="legend-color legend-green"></span><span>Jawaban benar semua</span></div>
                             <div class="legend-item"><span class="legend-color legend-yellow"></span><span>Terdapat kesalahan jawaban</span></div>
                             <div class="legend-item"><span class="legend-color legend-red"></span><span>Data duplikat</span></div>
                             <div class="legend-item"><span class="legend-color legend-black"></span><span>Answer Key belum disetting</span></div>
                         </div>
+
                         <div id="filterContainer" class="form-group">
                             <label class="form-label">Filter Sub-Department Area</label>
                             <select id="filterSubDept" onchange="filterEmployeeList()" class="input-field">
@@ -244,7 +254,9 @@
                                 <option value="MA">MA</option>
                             </select>
                         </div>
+
                         <div id="employeeList" class="employee-list"></div>
+
                         <div id="employeeDetail" class="employee-detail hidden">
                             <button onclick="backToList()" class="btn-link">← Kembali ke daftar</button>
                             <div id="employeeInfo" class="employee-info"></div>
@@ -262,17 +274,8 @@
                 </div>
 
                 <!-- ==================== SETTINGS VIEW ==================== -->
-                <div id="settingsView" class="view-container hidden">
-                    <div id="settingsGate" class="verify-gate hidden">
-                        <div class="gate-card">
-                            <div class="gate-icon">🔐</div>
-                            <h2>Akses Diperlukan</h2>
-                            <p>Halaman Pengaturan memerlukan verifikasi.</p>
-                            <button onclick="requestSettingsAccess()" class="btn-primary btn-large">Masuk</button>
-                        </div>
-                    </div>
-
-                    <div id="settingsContent" class="hidden">
+                <div id="settingsView" class="view-container">
+                    <div id="settingsContent">
                         <div class="card">
                             <h3 class="card-title">Pengaturan Periode Gage R&R</h3>
                             <div class="form-group">
@@ -288,9 +291,9 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-    </div>
+            </div><!-- end content-area -->
+        </div><!-- end main-content -->
+    </div><!-- end mainApp -->
 
     <script src="datanamanik.js"></script>
     <script src="script.js"></script>
