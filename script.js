@@ -190,8 +190,10 @@ function submitVerify() {
     const cred     = VERIFY_CREDENTIALS[verifyCallback.type];
 
     if (username === cred.username && password === cred.password) {
+        // Simpan callback dulu sebelum closeVerifyModal set verifyCallback = null
+        const successCallback = verifyCallback.callback;
         closeVerifyModal();
-        verifyCallback.callback();
+        successCallback();
     } else {
         document.getElementById('verifyError').classList.remove('hidden');
         document.getElementById('verifyPassword').value = '';
@@ -206,66 +208,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// ── Gate: Input Data ────────────────────────────────────────
-function requestInputAccess() {
-    openVerifyModal(
-        'Verifikasi Input Data',
-        'Masukkan kredensial untuk mengakses halaman Input Data.',
-        'input',
-        function () {
-            inputVerified = true;
-            showInputContent();
-        }
-    );
-}
-
-function showInputContent() {
-    document.getElementById('inputView').classList.remove('hidden');
-    document.getElementById('inputGate').classList.add('hidden');
-    document.getElementById('inputContent').classList.remove('hidden');
-}
-
-// ── Gate: Auto List Sample ──────────────────────────────────
-function requestAutoListAccess() {
-    openVerifyModal(
-        'Verifikasi Auto List Sample',
-        'Masukkan kredensial admin untuk mengatur Answer Keys.',
-        'protected',
-        function () {
-            autoListVerified = true;
-            showAutoListContent();
-        }
-    );
-}
-
-function showAutoListContent() {
-    document.getElementById('autoListView').classList.remove('hidden');
-    document.getElementById('autoListGate').classList.add('hidden');
-    document.getElementById('autoListContent').classList.remove('hidden');
-    renderAreaSelector();
-}
-
-// ── Gate: Settings ──────────────────────────────────────────
-function requestSettingsAccess() {
-    openVerifyModal(
-        'Verifikasi Pengaturan',
-        'Masukkan kredensial admin untuk mengubah periode.',
-        'protected',
-        function () {
-            settingsVerified = true;
-            showSettingsContent();
-        }
-    );
-}
-
-function showSettingsContent() {
-    document.getElementById('settingsView').classList.remove('hidden');
-    document.getElementById('settingsGate').classList.add('hidden');
-    document.getElementById('settingsContent').classList.remove('hidden');
-    fetchDateRangeFromSheet();
-}
-
-// ── Gate: Hapus Data ────────────────────────────────────────
+// ── Hapus Data ─────────────────────────────────────────────
 function requestDeleteData() {
     openVerifyModal(
         'Verifikasi Hapus Data',
@@ -281,41 +224,51 @@ function requestDeleteData() {
 // NAVIGASI
 // ============================================================
 function navigateTo(view) {
-    // 1. Sembunyikan semua view
+    // Sembunyikan semua view & reset menu active
     ['inputView','autoListView','dataNilaiView','settingsView'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
     });
-
-    // 2. Reset semua menu active
     document.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
-
-    // 3. Tutup sidebar
     toggleSidebar(false);
 
     if (view === 'input') {
-        document.getElementById('inputView').classList.remove('hidden');
         document.getElementById('menuInput').classList.add('active');
         document.getElementById('headerTitle').textContent = 'Input Data';
 
         if (!inputVerified) {
-            // Tampilkan gate, sembunyikan konten
-            document.getElementById('inputGate').classList.remove('hidden');
-            document.getElementById('inputContent').classList.add('hidden');
+            openVerifyModal(
+                'Verifikasi Input Data',
+                'Masukkan kredensial untuk mengakses halaman Input Data.',
+                'input',
+                function () {
+                    inputVerified = true;
+                    document.getElementById('inputView').classList.remove('hidden');
+                    document.getElementById('inputContent').classList.remove('hidden');
+                }
+            );
         } else {
-            document.getElementById('inputGate').classList.add('hidden');
+            document.getElementById('inputView').classList.remove('hidden');
             document.getElementById('inputContent').classList.remove('hidden');
         }
 
     } else if (view === 'autolist') {
-        document.getElementById('autoListView').classList.remove('hidden');
         document.getElementById('menuAutoList').classList.add('active');
         document.getElementById('headerTitle').textContent = 'Auto List Sample';
 
         if (!autoListVerified) {
-            document.getElementById('autoListGate').classList.remove('hidden');
-            document.getElementById('autoListContent').classList.add('hidden');
+            openVerifyModal(
+                'Verifikasi Auto List Sample',
+                'Masukkan kredensial admin untuk mengatur Answer Keys.',
+                'protected',
+                function () {
+                    autoListVerified = true;
+                    document.getElementById('autoListView').classList.remove('hidden');
+                    document.getElementById('autoListContent').classList.remove('hidden');
+                    renderAreaSelector();
+                }
+            );
         } else {
-            document.getElementById('autoListGate').classList.add('hidden');
+            document.getElementById('autoListView').classList.remove('hidden');
             document.getElementById('autoListContent').classList.remove('hidden');
             renderAreaSelector();
         }
@@ -330,15 +283,23 @@ function navigateTo(view) {
         renderEmployeeList();
 
     } else if (view === 'settings') {
-        document.getElementById('settingsView').classList.remove('hidden');
         document.getElementById('menuSettings').classList.add('active');
         document.getElementById('headerTitle').textContent = 'Pengaturan Periode';
 
         if (!settingsVerified) {
-            document.getElementById('settingsGate').classList.remove('hidden');
-            document.getElementById('settingsContent').classList.add('hidden');
+            openVerifyModal(
+                'Verifikasi Pengaturan',
+                'Masukkan kredensial admin untuk mengubah periode.',
+                'protected',
+                function () {
+                    settingsVerified = true;
+                    document.getElementById('settingsView').classList.remove('hidden');
+                    document.getElementById('settingsContent').classList.remove('hidden');
+                    fetchDateRangeFromSheet();
+                }
+            );
         } else {
-            document.getElementById('settingsGate').classList.add('hidden');
+            document.getElementById('settingsView').classList.remove('hidden');
             document.getElementById('settingsContent').classList.remove('hidden');
             fetchDateRangeFromSheet();
         }
