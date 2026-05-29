@@ -1,5 +1,5 @@
 /* ============================================================
-   GAGE R&R SYSTEM — style.css
+   GAGE R&R SYSTEM — style.css (v2)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -248,6 +248,31 @@ body {
 .form-group { margin-bottom: 16px; }
 .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
 .form-subtitle { font-size: 15px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px; margin-top: 20px; }
+
+/* ── Periode Banner ──────────────────────────────────────── */
+.periode-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--danger-light);
+    border: 1.5px solid var(--danger);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #991B1B;
+    animation: fadeIn .3s ease;
+}
+.periode-banner-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+/* Saat banner aktif, disable tombol simpan & input */
+.periode-active #inputContent {
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+}
 
 /* ── Verify Gate ─────────────────────────────────────────── */
 .verify-gate {
@@ -505,6 +530,147 @@ body {
 }
 .sample-key-header { font-weight: 700; font-size: 14px; color: var(--gray-800); margin-bottom: 10px; }
 
+/* ── Defect List Section ─────────────────────────────────── */
+/* Wrapper dua kolom kiri/kanan untuk defect list di dalam sample item */
+.defect-sides-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.defect-side-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.defect-side-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 2px;
+}
+.defect-side-label.label-left  { background: var(--primary-light); color: var(--primary); }
+.defect-side-label.label-right { background: #f0fdf4; color: #166534; }
+.defect-side-label.label-fail  { background: var(--danger-light); color: #991B1B; }
+
+/* Tag defect yang sudah dikonfirmasi (dari enter) */
+.defect-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 0;
+}
+
+.defect-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: white;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    border-radius: 20px;
+    padding: 4px 10px 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .15s;
+}
+.defect-tag:hover { background: var(--primary-light); }
+
+.defect-tag-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background .15s;
+}
+.defect-tag-delete:hover { background: #DC2626; }
+
+/* Input box teks defect manual */
+.defect-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.defect-input-box {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1.5px dashed var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--gray-800);
+    background: white;
+    transition: border-color .2s;
+}
+.defect-input-box:focus {
+    outline: none;
+    border-color: var(--primary);
+    border-style: solid;
+}
+.defect-input-box::placeholder { color: var(--gray-400); font-style: italic; }
+
+/* Tag preset dari answer key (bisa aktif / nonaktif) */
+.defect-preset-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+
+.defect-tag-preset {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border: 1.5px solid var(--gray-300);
+    background: white;
+    color: var(--gray-500);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all .15s;
+}
+.defect-tag-preset:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+.defect-tag-preset.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+/* Tag preset yang tidak relevan (side salah, tidak fail) */
+.defect-tag-preset.irrelevant {
+    display: none;
+}
+
+/* Divider tipis antara combo dan defect section */
+.defect-divider {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 10px 0 8px;
+}
+
 /* ── Color Legend ────────────────────────────────────────── */
 .color-legend {
     background: var(--gray-50);
@@ -556,14 +722,101 @@ body {
 .detail-actions { display: flex; gap: 10px; margin-top: 14px; }
 .detail-actions button { flex: 1; }
 
-/* ── Grade Table ─────────────────────────────────────────── */
+/* ── Grade Table (10 kolom) ──────────────────────────────── */
+/*
+   Struktur kolom:
+   [Sepatu] [Pem1 P/F] [Ket1] [CT1] [Pem2 P/F] [Ket2] [CT2] [Pem3 P/F] [Ket3] [CT3]
+   Total: 10 kolom
+   CT di-merge tiap 2 baris (sepasang sepatu = 1 cycle time)
+*/
 .table-wrapper { width: 100%; overflow-x: auto; margin-bottom: 10px; }
-.grade-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.grade-table th, .grade-table td { border: 1px solid var(--gray-200); padding: 9px 8px; text-align: center; }
-.grade-table th { background: var(--gray-100); font-weight: 700; color: var(--gray-700); }
-.grade-table td { background: white; }
-.grade-table td.wrong-answer { background: var(--warning-light); font-weight: 700; color: #92400E; }
+.grade-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
+
+.grade-table th,
+.grade-table td {
+    border: 1px solid var(--gray-200);
+    padding: 7px 6px;
+    text-align: center;
+    vertical-align: middle;
+}
+.grade-table th {
+    background: var(--gray-100);
+    font-weight: 700;
+    color: var(--gray-700);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* Header grup pemeriksaan */
+.grade-table th.th-group {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Kolom P/F */
+.grade-table td.cell-pf {
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    min-width: 34px;
+}
+/* Warna salah */
+.grade-table td.wrong-answer {
+    background: var(--warning-light);
+    font-weight: 700;
+    color: #92400E;
+}
+
+/* Kolom keterangan defect */
+.grade-table td.cell-ket {
+    font-size: 11px;
+    color: var(--gray-700);
+    max-width: 100px;
+    text-align: left;
+    padding: 6px 8px;
+}
+.grade-table td.cell-ket-empty {
+    color: var(--gray-300);
+}
+
+/* Kolom cycle time (merged 2 baris) */
+.grade-table td.cell-ct {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--gray-600);
+    background: var(--gray-50);
+    font-weight: 500;
+    min-width: 44px;
+}
+
+/* Baris header sekunder (sub-header) */
+.grade-table tr.sub-header th {
+    background: var(--gray-50);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gray-500);
+    padding: 4px 6px;
+}
+
 .table-note { font-size: 11px; color: var(--gray-500); margin-top: 5px; }
+
+/* ── Defect tags di tabel data nilai ─────────────────────── */
+.defect-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+.defect-chip {
+    display: inline-block;
+    background: var(--danger-light);
+    color: #991B1B;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
 
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeIn {
@@ -594,4 +847,6 @@ body {
     .area-selector { grid-template-columns: repeat(2, 1fr); }
     .mode-options { flex-direction: column; }
     .random-timer-inputs { flex-wrap: wrap; }
+    .defect-sides-wrapper { grid-template-columns: 1fr; }
+    .grade-table { font-size: 11px; }
 }
