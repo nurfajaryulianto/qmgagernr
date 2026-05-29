@@ -3,7 +3,7 @@
 // ============================================================
 
 // ── Google Sheets Apps Script URL ──────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfXBOoDO6rg1jD0gd_Afu_tvznaeSmPl0LoBzDwP3zf290D8QWkOloOKzlz7FhSazkYw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTt1J3BGovZ438jq7saRMMAV_ZzyMH0I4POnbFn822SI7IroZ3SP-m7zKVLFPO3-7AOQ/exec';
 
 // ── Kredensial Verifikasi ───────────────────────────────────
 const VERIFY_CREDENTIALS = {
@@ -1596,10 +1596,244 @@ function deleteEmployeeData() {
 }
 
 // ============================================================
-// DOWNLOAD EXCEL — Placeholder
+// DOWNLOAD EXCEL — SheetJS (.xlsx)
 // ============================================================
+// Layout (meniru tampilan Data Nilai):
+//   Baris 1  : "GAGE R&R"  (bold, font besar, merge A1:J1)
+//   Baris 2  : "GAGE RNR Assessment - Form manual" (merge A2:J2)
+//   Baris 3  : kosong
+//   Baris 4  : label "Tanggal"   | nilai
+//   Baris 5  : label "Penilai"   | nilai
+//   Baris 6  : label "Nama"      | nilai
+//   Baris 7  : label "NIK"       | nilai
+//   Baris 8  : label "Bagian"    | nilai
+//   Baris 9  : kosong
+//   Baris 10 : header grup  — [Sepatu] [Pem1 P/F Ket CT] [Pem2 P/F Ket CT] [Pem3 P/F Ket CT]
+//   Baris 11 : sub-header   — [       ] [P/F Ket CT] ×3
+//   Baris 12–21: data 10 sepatu (CT merge 2 baris per pasang)
+// Total kolom: 10 (A–J)
+// ============================================================
+
 function downloadExcel() {
-    alert('Fitur download Excel akan segera tersedia.');
+    if (!selectedEmployee) return;
+
+    // Muat SheetJS dari CDN jika belum ada
+    if (typeof XLSX === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload  = () => _buildAndDownloadExcel();
+        script.onerror = () => alert('Gagal memuat library Excel. Periksa koneksi internet.');
+        document.head.appendChild(script);
+    } else {
+        _buildAndDownloadExcel();
+    }
+}
+
+function _buildAndDownloadExcel() {
+    const s   = selectedEmployee;
+    const chk = checkAnswer(s);
+
+    // ── Tanggal tampilan ──────────────────────────────────
+    const displayDate = s.inspectionDate
+        ? formatDateFromISO(s.inspectionDate)
+        : formatDate(s.timestamp);
+
+    // ── Workbook & Worksheet ──────────────────────────────
+    const wb = XLSX.utils.book_new();
+    const ws = {};
+
+    // Helper tulis cell
+    const C = (r, c, v, t) => {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        ws[addr] = { v, t: t || 's' };
+    };
+
+    // ── Baris 0 (R0): Header utama "GAGE R&R" ────────────
+    C(0, 0, 'GAGE R&R');
+
+    // ── Baris 1 (R1): Sub-header ─────────────────────────
+    C(1, 0, 'GAGE RNR Assessment - Form manual');
+
+    // ── Baris 2 (R2): kosong ─────────────────────────────
+
+    // ── Baris 3–7 (R3–R7): Info peserta ──────────────────
+    const infoRows = [
+        ['Tanggal',  displayDate],
+        ['Penilai',  s.assessor],
+        ['Nama',     s.name],
+        ['NIK',      s.nik],
+        ['Bagian',   `${s.subDept} — ${s.line}`]
+    ];
+    infoRows.forEach((row, i) => {
+        C(3 + i, 0, row[0]);
+        C(3 + i, 1, row[1]);
+    });
+
+    // ── Baris 8 (R8): kosong ─────────────────────────────
+
+    // ── Baris 9 (R9): Header grup tabel ──────────────────
+    // Kolom: A=Sepatu, B=P/F1, C=Ket1, D=CT1, E=P/F2, F=Ket2, G=CT2, H=P/F3, I=Ket3, J=CT3
+    C(9, 0, 'Sepatu');
+    C(9, 1, 'Pemeriksaan 1');
+    C(9, 4, 'Pemeriksaan 2');
+    C(9, 7, 'Pemeriksaan 3');
+
+    // ── Baris 10 (R10): Sub-header tabel ─────────────────
+    C(10, 0, 'Sepatu');
+    [1, 4, 7].forEach(col => {
+        C(10, col,     'P/F');
+        C(10, col + 1, 'Ket');
+        C(10, col + 2, 'CT (dtk)');
+    });
+
+    // ── Baris 11–20 (R11–R20): Data 10 sepatu ────────────
+    for (let num = 1; num <= 10; num++) {
+        const row       = 10 + num;   // R11–R20
+        const sampleNum = Math.ceil(num / 2);
+        const isLeft    = num % 2 === 1;
+        const side      = isLeft ? 'left' : 'right';
+
+        C(row, 0, num, 'n');
+
+        for (let checkNum = 1; checkNum <= 3; checkNum++) {
+            const item    = s.data.find(d => d.checking === checkNum && d.sample === sampleNum);
+            const value   = item ? (isLeft ? item.left : item.right) : '';
+            const display = value === 'Pass' ? 'P' : value === 'Fail' ? 'F' : '-';
+            const defects = getDefectsForDisplay(item, side);
+            const ct      = item ? (item.cycleTime || 0) : 0;
+
+            const baseCol = (checkNum - 1) * 3 + 1; // 1, 4, 7
+            C(row, baseCol,     display);
+            C(row, baseCol + 1, defects.length > 0 ? defects.join(', ') : '—');
+
+            // CT: hanya tulis di baris ganjil (isLeft), baris genap dibiarkan kosong
+            // Merge akan menyatukan keduanya
+            if (isLeft) {
+                C(row, baseCol + 2, ct, 'n');
+            }
+        }
+    }
+
+    // ── Worksheet range ───────────────────────────────────
+    ws['!ref'] = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: 20, c: 9 });
+
+    // ── Merge cells ───────────────────────────────────────
+    ws['!merges'] = [
+        // Header utama: A1 merge A–J
+        { s: { r:0, c:0 }, e: { r:0, c:9 } },
+        // Sub-header: A2 merge A–J
+        { s: { r:1, c:0 }, e: { r:1, c:9 } },
+        // Info peserta: kolom B–J di-merge (label kolom A, nilai B–J)
+        { s: { r:3, c:1 }, e: { r:3, c:9 } },
+        { s: { r:4, c:1 }, e: { r:4, c:9 } },
+        { s: { r:5, c:1 }, e: { r:5, c:9 } },
+        { s: { r:6, c:1 }, e: { r:6, c:9 } },
+        { s: { r:7, c:1 }, e: { r:7, c:9 } },
+        // Header grup pemeriksaan (R9)
+        { s: { r:9, c:0 }, e: { r:10, c:0 } },  // "Sepatu" rowspan 2
+        { s: { r:9, c:1 }, e: { r:9, c:3  } },  // Pemeriksaan 1
+        { s: { r:9, c:4 }, e: { r:9, c:6  } },  // Pemeriksaan 2
+        { s: { r:9, c:7 }, e: { r:9, c:9  } },  // Pemeriksaan 3
+        // CT merge per pasang sepatu (5 pasang × 3 pemeriksaan = 15 merge)
+        ...buildCtMerges()
+    ];
+
+    // ── Column widths ─────────────────────────────────────
+    ws['!cols'] = [
+        { wch: 8  },  // A Sepatu
+        { wch: 6  },  // B P/F 1
+        { wch: 22 },  // C Ket 1
+        { wch: 10 },  // D CT 1
+        { wch: 6  },  // E P/F 2
+        { wch: 22 },  // F Ket 2
+        { wch: 10 },  // G CT 2
+        { wch: 6  },  // H P/F 3
+        { wch: 22 },  // I Ket 3
+        { wch: 10 },  // J CT 3
+    ];
+
+    // ── Styles via cell metadata (SheetJS community = terbatas) ──
+    // Bold header utama
+    const r0a = XLSX.utils.encode_cell({ r:0, c:0 });
+    if (ws[r0a]) ws[r0a].s = { font: { bold: true, sz: 16 }, alignment: { horizontal: 'center' } };
+
+    // Bold sub-header
+    const r1a = XLSX.utils.encode_cell({ r:1, c:0 });
+    if (ws[r1a]) ws[r1a].s = { alignment: { horizontal: 'center' } };
+
+    // Bold label info peserta (kolom A, R3–R7)
+    for (let i = 3; i <= 7; i++) {
+        const addr = XLSX.utils.encode_cell({ r:i, c:0 });
+        if (ws[addr]) ws[addr].s = { font: { bold: true } };
+    }
+
+    // Bold header tabel (R9–R10)
+    for (let r = 9; r <= 10; r++) {
+        for (let c = 0; c <= 9; c++) {
+            const addr = XLSX.utils.encode_cell({ r, c });
+            if (ws[addr]) ws[addr].s = {
+                font: { bold: true },
+                fill: { fgColor: { rgb: 'EEF2FF' } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: _border()
+            };
+        }
+    }
+
+    // Border & alignment untuk data tabel (R11–R20)
+    const check = checkAnswer(s);
+    for (let num = 1; num <= 10; num++) {
+        const row       = 10 + num;
+        const sampleNum = Math.ceil(num / 2);
+        const isLeft    = num % 2 === 1;
+
+        for (let c = 0; c <= 9; c++) {
+            const addr = XLSX.utils.encode_cell({ r: row, c });
+            if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+
+            const checkNum = c <= 3 ? 1 : c <= 6 ? 2 : 3;
+            const baseCol  = (checkNum - 1) * 3 + 1;
+            const isPfCol  = c === baseCol;
+            const side     = isLeft ? 'left' : 'right';
+
+            const isWrong = isPfCol && check.errors.some(e =>
+                e.checking === checkNum && e.sample === sampleNum && e.side === side
+            );
+
+            ws[addr].s = {
+                font:      { bold: c === 0, color: isWrong ? { rgb: '92400E' } : {} },
+                fill:      isWrong ? { fgColor: { rgb: 'FEF3C7' } } : {},
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border:    _border()
+            };
+        }
+    }
+
+    // ── Append & download ─────────────────────────────────
+    XLSX.utils.book_append_sheet(wb, ws, 'Gage RnR');
+
+    const safeName = s.name.replace(/[^a-zA-Z0-9_\- ]/g, '');
+    const fileName = `GageRnR_${safeName}_${s.nik}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+
+// Helper: bangun merge CT (setiap pasang sepatu ganjil-genap, 3 pemeriksaan)
+function buildCtMerges() {
+    const merges = [];
+    for (let pair = 0; pair < 5; pair++) {
+        const rowOdd  = 11 + pair * 2;     // baris ganjil (kiri)
+        const rowEven = rowOdd + 1;         // baris genap (kanan)
+        [3, 6, 9].forEach(col => {          // kolom CT per pemeriksaan
+            merges.push({ s: { r: rowOdd - 1, c: col }, e: { r: rowEven - 1, c: col } });
+        });
+    }
+    return merges;
+}
+
+// Helper: border tipis semua sisi
+function _border() {
+    const thin = { style: 'thin', color: { rgb: 'E5E7EB' } };
+    return { top: thin, bottom: thin, left: thin, right: thin };
 }
 
 // ============================================================
