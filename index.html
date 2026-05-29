@@ -78,6 +78,11 @@
                 <!-- ==================== INPUT VIEW ==================== -->
                 <div id="inputView" class="view-container">
 
+                    <!-- Banner Periode Berakhir -->
+                    <div id="periodeBanner" class="periode-banner hidden">
+                        <span class="periode-banner-icon">⚠️</span>
+                        <span>Periode Gage R&R telah berakhir. Input data tidak dapat dilakukan.</span>
+                    </div>
 
                     <!-- Konten Input Data (tampil setelah verifikasi) -->
                     <div id="inputContent">
@@ -90,6 +95,12 @@
                                 <label class="form-label">Penilai</label>
                                 <input type="text" id="assessorInput" placeholder="Ketik nama penilai..." class="input-field" oninput="filterAssessorSuggestions()" autocomplete="off">
                                 <div id="assessorDropdown" class="autocomplete-dropdown hidden"></div>
+                            </div>
+
+                            <!-- Date field: hanya muncul saat mode post-process -->
+                            <div class="form-group" id="dateInspectionGroup" style="display:none;">
+                                <label class="form-label">Tanggal Inspection</label>
+                                <input type="date" id="dateInspectionInput" class="input-field">
                             </div>
 
                             <div class="form-group">
@@ -106,14 +117,16 @@
                                 <label class="form-label">Sub-Department Area</label>
                                 <select id="subDeptInput" onchange="handleSubDeptChange()" class="input-field">
                                     <option value="">Pilih Sub-Department</option>
+                                    <option value="Assembly">Assembly</option>
+                                    <option value="CSC">CSC</option>
                                     <option value="Cutting">Cutting</option>
                                     <option value="DNS">DNS</option>
-                                    <option value="Preparation">Preparation</option>
-                                    <option value="CSC">CSC</option>
-                                    <option value="Sewing">Sewing</option>
-                                    <option value="Lasting">Lasting</option>
-                                    <option value="Assy">Assy</option>
+                                    <option value="IP">IP</option>
                                     <option value="MA">MA</option>
+                                    <option value="Preparation">Preparation</option>
+                                    <option value="Rubber">Rubber</option>
+                                    <option value="Stitching">Stitching</option>
+                                    <option value="Stockfit">Stockfit</option>
                                 </select>
                                 <div id="subDeptKeyNotif" class="subdept-notif hidden">
                                     <span class="notif-dot"></span>
@@ -123,18 +136,9 @@
 
                             <div class="form-group">
                                 <label class="form-label">Line</label>
+                                <!-- Line dirender dinamis oleh JS berdasarkan sub-dept -->
                                 <select id="lineInput" class="input-field">
-                                    <option value="">Pilih Line</option>
-                                    <option value="NCVS 101">NCVS 101</option>
-                                    <option value="NCVS 102">NCVS 102</option>
-                                    <option value="NCVS 103">NCVS 103</option>
-                                    <option value="NCVS 104">NCVS 104</option>
-                                    <option value="NCVS 105">NCVS 105</option>
-                                    <option value="NCVS 106">NCVS 106</option>
-                                    <option value="NCVS 107">NCVS 107</option>
-                                    <option value="NCVS 108">NCVS 108</option>
-                                    <option value="NCVS 109">NCVS 109</option>
-                                    <option value="NCVS 110">NCVS 110</option>
+                                    <option value="">Pilih Sub-Department terlebih dahulu</option>
                                 </select>
                             </div>
                         </div>
@@ -205,7 +209,7 @@
                 </div><!-- end inputView -->
 
                 <!-- ==================== AUTO LIST VIEW ==================== -->
-                <div id="autoListView" class="view-container">
+                <div id="autoListView" class="view-container hidden">
                     <div id="autoListContent">
                         <div class="card">
                             <h2 class="card-title">Auto List Sample — Answer Keys</h2>
@@ -216,7 +220,7 @@
                             </div>
 
                             <div id="answerKeyForm" class="answer-key-form hidden">
-                                <h3 class="form-subtitle">Atur Answer Key</h3>
+                                <h3 class="form-subtitle">Atur Answer Key &amp; List Defect</h3>
                                 <div id="sampleKeyContainer"></div>
                                 <div class="button-group">
                                     <button onclick="saveAnswerKey()" class="btn-primary">💾 Simpan Answer Key</button>
@@ -228,7 +232,7 @@
                 </div>
 
                 <!-- ==================== DATA NILAI VIEW ==================== -->
-                <div id="dataNilaiView" class="view-container">
+                <div id="dataNilaiView" class="view-container hidden">
                     <div class="card">
                         <h2 class="card-title">Data Nilai Peserta</h2>
 
@@ -244,14 +248,16 @@
                             <label class="form-label">Filter Sub-Department Area</label>
                             <select id="filterSubDept" onchange="filterEmployeeList()" class="input-field">
                                 <option value="">Semua Area</option>
+                                <option value="Assembly">Assembly</option>
+                                <option value="CSC">CSC</option>
                                 <option value="Cutting">Cutting</option>
                                 <option value="DNS">DNS</option>
-                                <option value="Preparation">Preparation</option>
-                                <option value="CSC">CSC</option>
-                                <option value="Sewing">Sewing</option>
-                                <option value="Lasting">Lasting</option>
-                                <option value="Assy">Assy</option>
+                                <option value="IP">IP</option>
                                 <option value="MA">MA</option>
+                                <option value="Preparation">Preparation</option>
+                                <option value="Rubber">Rubber</option>
+                                <option value="Stitching">Stitching</option>
+                                <option value="Stockfit">Stockfit</option>
                             </select>
                         </div>
 
@@ -263,8 +269,10 @@
                             <div class="table-wrapper">
                                 <table id="gradeTable" class="grade-table"></table>
                             </div>
+                            <!-- Keterangan tabel -->
                             <p class="table-note">P = Pass, F = Fail</p>
                             <p class="table-note">Angka ganjil = Kiri, Angka genap = Kanan</p>
+                            <p class="table-note">Ket = Jenis Defect | CT = Cycle Time (detik)</p>
                             <div class="detail-actions">
                                 <button id="downloadBtn" onclick="downloadExcel()" class="btn-success">📥 Download Excel</button>
                                 <button id="deleteDataBtn" onclick="requestDeleteData()" class="btn-danger">🗑️ Hapus Data</button>
@@ -274,7 +282,7 @@
                 </div>
 
                 <!-- ==================== SETTINGS VIEW ==================== -->
-                <div id="settingsView" class="view-container">
+                <div id="settingsView" class="view-container hidden">
                     <div id="settingsContent">
                         <div class="card">
                             <h3 class="card-title">Pengaturan Periode Gage R&R</h3>
