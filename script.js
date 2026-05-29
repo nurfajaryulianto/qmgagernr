@@ -3,7 +3,7 @@
 // ============================================================
 
 // ── Google Sheets Apps Script URL ──────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTt1J3BGovZ438jq7saRMMAV_ZzyMH0I4POnbFn822SI7IroZ3SP-m7zKVLFPO3-7AOQ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfXBOoDO6rg1jD0gd_Afu_tvznaeSmPl0LoBzDwP3zf290D8QWkOloOKzlz7FhSazkYw/exec';
 
 // ── Kredensial Verifikasi ───────────────────────────────────
 const VERIFY_CREDENTIALS = {
