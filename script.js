@@ -101,11 +101,43 @@ let autoListVerified = false;
 let settingsVerified = false;
 let verifyCallback   = null;
 
+// ── Pairs Setting Helpers ────────────────────────────────────
+function getNumSamplesSetting() {
+    const val = localStorage.getItem('gageRnR_totalPairs');
+    return val === '10' ? 10 : 5;
+}
+
+function setTotalPairs(n) {
+    localStorage.setItem('gageRnR_totalPairs', n.toString());
+    updatePairsSelectorUI(n);
+    initializeCheckingData();
+    if (selectedArea) {
+        selectArea(selectedArea);
+    }
+}
+
+function updatePairsSelectorUI(n) {
+    const is5 = n === 5;
+    
+    // Update Input View selectors
+    const btnInput5 = document.getElementById('inputPairsBtn5');
+    const btnInput10 = document.getElementById('inputPairsBtn10');
+    if (btnInput5) btnInput5.classList.toggle('active', is5);
+    if (btnInput10) btnInput10.classList.toggle('active', !is5);
+
+    // Update Auto List View selectors
+    const btnAuto5 = document.getElementById('autoListPairsBtn5');
+    const btnAuto10 = document.getElementById('autoListPairsBtn10');
+    if (btnAuto5) btnAuto5.classList.toggle('active', is5);
+    if (btnAuto10) btnAuto10.classList.toggle('active', !is5);
+}
+
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function () {
     loadFromStorage();
+    updatePairsSelectorUI(getNumSamplesSetting());
     fetchAnswerKeysFromSheet();
     fetchDateRangeFromSheet();
     fetchAssessorsFromSheet();
@@ -126,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function saveToStorage() {
     localStorage.setItem('gageRnR_submittedData', JSON.stringify(submittedData));
     localStorage.setItem('gageRnR_defectKeys', JSON.stringify(defectKeys));
+    localStorage.setItem('gageRnR_localAnswerKeys', JSON.stringify(answerKeys));
 }
 
 function loadFromStorage() {
@@ -134,6 +167,15 @@ function loadFromStorage() {
 
     const savedDefects = localStorage.getItem('gageRnR_defectKeys');
     if (savedDefects) defectKeys = JSON.parse(savedDefects);
+
+    const savedLocalKeys = localStorage.getItem('gageRnR_localAnswerKeys');
+    if (savedLocalKeys) {
+        const parsed = JSON.parse(savedLocalKeys);
+        for (const area in parsed) {
+            if (!answerKeys[area]) answerKeys[area] = {};
+            Object.assign(answerKeys[area], parsed[area]);
+        }
+    }
 }
 
 // ============================================================
@@ -176,6 +218,21 @@ async function fetchAnswerKeysFromSheet() {
     const res = await sheetGet('getAnswerKeys');
     if (res.status === 'success') {
         answerKeys = res.data || {};
+        
+        // Merge dengan data local untuk sample > 5
+        const savedLocal = localStorage.getItem('gageRnR_localAnswerKeys');
+        if (savedLocal) {
+            const localKeys = JSON.parse(savedLocal);
+            for (const area in localKeys) {
+                if (!answerKeys[area]) answerKeys[area] = {};
+                for (const sample in localKeys[area]) {
+                    if (parseInt(sample) > 5) {
+                        answerKeys[area][sample] = localKeys[area][sample];
+                    }
+                }
+            }
+        }
+        
         updateAutoFillButton();
         renderAreaSelector();
     }
@@ -578,9 +635,10 @@ function initializeCheckingData() {
     Object.values(timerIntervals).forEach(clearInterval);
     timerIntervals = {};
 
+    const totalSamples = getNumSamplesSetting();
     checkingData = [];
     for (let check = 1; check <= 3; check++) {
-        for (let sample = 1; sample <= 5; sample++) {
+        for (let sample = 1; sample <= totalSamples; sample++) {
             checkingData.push({
                 checking:     check,
                 sample:       sample,
@@ -1083,20 +1141,18 @@ function selectArea(area) {
 
     document.getElementById('answerKeyForm').classList.remove('hidden');
 
+    const totalSamples = getNumSamplesSetting();
+
     // Init tempAnswerKey
-    if (answerKeys[area]) {
-        tempAnswerKey = JSON.parse(JSON.stringify(answerKeys[area]));
-    } else {
-        tempAnswerKey = {};
-        for (let i = 1; i <= 5; i++) tempAnswerKey[i] = '';
+    tempAnswerKey = answerKeys[area] ? JSON.parse(JSON.stringify(answerKeys[area])) : {};
+    for (let i = 1; i <= totalSamples; i++) {
+        if (tempAnswerKey[i] === undefined) tempAnswerKey[i] = '';
     }
 
     // Init tempDefectKey
-    if (defectKeys[area]) {
-        tempDefectKey = JSON.parse(JSON.stringify(defectKeys[area]));
-    } else {
-        tempDefectKey = {};
-        for (let i = 1; i <= 5; i++) tempDefectKey[i] = { left: [], right: [] };
+    tempDefectKey = defectKeys[area] ? JSON.parse(JSON.stringify(defectKeys[area])) : {};
+    for (let i = 1; i <= totalSamples; i++) {
+        if (!tempDefectKey[i]) tempDefectKey[i] = { left: [], right: [] };
     }
 
     renderAnswerKeyForm();
@@ -1108,8 +1164,9 @@ function renderAnswerKeyForm() {
     container.innerHTML = '';
 
     const combos = ['Pass-Pass', 'Fail-Fail', 'Pass-Fail', 'Fail-Pass'];
+    const totalSamples = getNumSamplesSetting();
 
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= totalSamples; i++) {
         const selected = tempAnswerKey[i] || '';
 
         const item = document.createElement('div');
@@ -1316,7 +1373,9 @@ function buildKeyDefectTag(sample, side, value) {
 async function saveAnswerKey() {
     if (!selectedArea) { alert('Pilih area terlebih dahulu!'); return; }
 
-    for (let i = 1; i <= 5; i++) {
+    const totalSamples = getNumSamplesSetting();
+
+    for (let i = 1; i <= totalSamples; i++) {
         if (!tempAnswerKey[i] || tempAnswerKey[i] === '') {
             alert(`Sample ${i} belum dipilih!`); return;
         }
@@ -1336,12 +1395,20 @@ async function saveAnswerKey() {
         }
     }
 
+    // Google Sheets hanya disinkronisasi untuk sampel 1-5 guna menjaga integritas baris spreadsheet
     const answers = {};
-    for (let i = 1; i <= 5; i++) answers[i] = tempAnswerKey[i];
+    for (let i = 1; i <= Math.min(totalSamples, 5); i++) {
+        answers[i] = tempAnswerKey[i];
+    }
 
     const res = await saveAnswerKeyToSheet(selectedArea, answers);
     if (res.status === 'success') {
-        // Simpan defect key ke localStorage
+        // Simpan seluruh 1-10 ke local answerKeys dan defectKeys
+        if (!answerKeys[selectedArea]) answerKeys[selectedArea] = {};
+        for (let i = 1; i <= totalSamples; i++) {
+            answerKeys[selectedArea][i] = tempAnswerKey[i];
+        }
+
         defectKeys[selectedArea] = JSON.parse(JSON.stringify(tempDefectKey));
         saveToStorage();
 
@@ -1363,12 +1430,15 @@ async function deleteAnswerKey() {
     if (res.status === 'success') {
         // Hapus defect key juga
         delete defectKeys[selectedArea];
+        // Hapus local answer key
+        delete answerKeys[selectedArea];
         saveToStorage();
 
         await fetchAnswerKeysFromSheet();
         tempAnswerKey = {};
         tempDefectKey = {};
-        for (let i = 1; i <= 5; i++) {
+        const totalSamples = getNumSamplesSetting();
+        for (let i = 1; i <= totalSamples; i++) {
             tempAnswerKey[i] = '';
             tempDefectKey[i] = { left: [], right: [] };
         }
@@ -1508,6 +1578,10 @@ function renderGradeTable() {
     const table = document.getElementById('gradeTable');
     const check = checkAnswer(selectedEmployee);
 
+    // Hitung jumlah pasang secara dinamis berdasarkan data
+    const totalPairs = selectedEmployee.data ? (selectedEmployee.data.length / 3) : 5;
+    const totalShoes = totalPairs * 2;
+
     // Header baris 1: grup
     let html = `<thead>
         <tr>
@@ -1522,8 +1596,8 @@ function renderGradeTable() {
     }
     html += `</tr></thead><tbody>`;
 
-    // Data rows: 10 sepatu (1–10), CT di-merge tiap 2 baris
-    for (let num = 1; num <= 10; num++) {
+    // Data rows: CT di-merge tiap 2 baris
+    for (let num = 1; num <= totalShoes; num++) {
         const sampleNum = Math.ceil(num / 2);
         const isLeft    = num % 2 === 1;  // ganjil = kiri
         const isFirstOfPair = isLeft;     // baris ganjil = mulai pasangan
@@ -1686,9 +1760,12 @@ function _buildAndDownloadExcel() {
         C(10, col + 2, 'CT (dtk)');
     });
 
-    // ── Baris 11–20 (R11–R20): Data 10 sepatu ────────────
-    for (let num = 1; num <= 10; num++) {
-        const row       = 10 + num;   // R11–R20
+    // ── Baris 11–20+: Data sepatu ────────────
+    const totalPairs = s.data ? (s.data.length / 3) : 5;
+    const totalShoes = totalPairs * 2;
+
+    for (let num = 1; num <= totalShoes; num++) {
+        const row       = 10 + num;
         const sampleNum = Math.ceil(num / 2);
         const isLeft    = num % 2 === 1;
         const side      = isLeft ? 'left' : 'right';
@@ -1715,7 +1792,7 @@ function _buildAndDownloadExcel() {
     }
 
     // ── Worksheet range ───────────────────────────────────
-    ws['!ref'] = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: 20, c: 9 });
+    ws['!ref'] = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: 10 + totalShoes, c: 9 });
 
     // ── Merge cells ───────────────────────────────────────
     ws['!merges'] = [
@@ -1734,8 +1811,8 @@ function _buildAndDownloadExcel() {
         { s: { r:9, c:1 }, e: { r:9, c:3  } },  // Pemeriksaan 1
         { s: { r:9, c:4 }, e: { r:9, c:6  } },  // Pemeriksaan 2
         { s: { r:9, c:7 }, e: { r:9, c:9  } },  // Pemeriksaan 3
-        // CT merge per pasang sepatu (5 pasang × 3 pemeriksaan = 15 merge)
-        ...buildCtMerges()
+        // CT merge per pasang sepatu
+        ...buildCtMerges(totalPairs)
     ];
 
     // ── Column widths ─────────────────────────────────────
@@ -1780,9 +1857,9 @@ function _buildAndDownloadExcel() {
         }
     }
 
-    // Border & alignment untuk data tabel (R11–R20)
+    // Border & alignment untuk data tabel
     const check = checkAnswer(s);
-    for (let num = 1; num <= 10; num++) {
+    for (let num = 1; num <= totalShoes; num++) {
         const row       = 10 + num;
         const sampleNum = Math.ceil(num / 2);
         const isLeft    = num % 2 === 1;
@@ -1818,9 +1895,9 @@ function _buildAndDownloadExcel() {
 }
 
 // Helper: bangun merge CT (setiap pasang sepatu ganjil-genap, 3 pemeriksaan)
-function buildCtMerges() {
+function buildCtMerges(totalPairs) {
     const merges = [];
-    for (let pair = 0; pair < 5; pair++) {
+    for (let pair = 0; pair < totalPairs; pair++) {
         const rowOdd  = 11 + pair * 2;     // baris ganjil (kiri)
         const rowEven = rowOdd + 1;         // baris genap (kanan)
         [3, 6, 9].forEach(col => {          // kolom CT per pemeriksaan

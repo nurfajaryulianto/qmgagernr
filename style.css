@@ -832,6 +832,35 @@ body {
     to   { opacity: 1; transform: scale(1); }
 }
 
+/* ── Pairs Selector ──────────────────────────────────────── */
+.pairs-selector-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+.pairs-btn {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid var(--gray-200);
+    background: white;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+    text-align: center;
+}
+.pairs-btn:hover {
+    border-color: var(--primary);
+}
+.pairs-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 640px) {
     .content-area { padding: 14px; }
